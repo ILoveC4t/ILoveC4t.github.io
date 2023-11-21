@@ -24,12 +24,14 @@ class Entity {
 
     dead = false;
     
-    constructor(gd, w, h, x, y, src) {
+    constructor(gd, w, h, x, y) {
         this.gd = gd
-        this.w = w
-        this.h = h
-        this.x = x
-        this.y = y
+        if (w) this.w = w
+        if (h) this.h = h
+        if (x) this.x = x
+        if (y) this.y = y
+
+        this.spawn_time = Date.now()
 
         this.img = new Image()
     }
@@ -103,8 +105,8 @@ class Ally extends Entity {
 
     check_collisions() {
         const collisions = []
-        for (let i = 0; i < this.gd.enemies.length; i++) {
-            const obj_name = this.gd.enemies[i]
+        for (const [obj_name, obj] of Object.entries(this.gd.entities)) {
+            if (this.gd.enemies[obj_name] == null) continue
             for (const enemy of this.gd.entities[obj_name]) {
                 if (this._check_collision(this, enemy)) {
                     collisions.push(enemy)
@@ -125,8 +127,8 @@ class Ally extends Entity {
 class Enemy extends Entity {
     score_pts = 0;
 
-    constructor(gd, w, h, x, y) {
-        super(gd, w, h, x, y)
+    constructor(gd) {
+        super(gd)
     }
 
     tick() {
@@ -147,6 +149,7 @@ class Boom extends Entity {
     created = null;
     src = "assets/boom.png";
     explodes_on_death = false;
+    health = 100000000
 
     constructor(gd, w, h, x, y) {
         super(gd, w, h, x, y)
@@ -250,6 +253,7 @@ class Bullet extends Ally {
     move_speed = 500;
     flat_dmg = true;
     explodes_on_death = false;
+    health = 1
 
     src = "assets/bullet.png";
 
@@ -274,16 +278,60 @@ class Baddy extends Enemy {
     move_speed = 100;
     src = "assets/baddy.png";
 
+    w = 50;
+    h = 50;
+
     lastMove = 0;
 
-    constructor(gd, w, h, x, y) {
-        super(gd, w, h, x, y)
+    constructor(gd) {
+        super(gd)
         this.img.src = this.src
     }
 
     tick() {
         if (Date.now() - this.lastMove > 1000) {
-            this.move_angle = (Math.random() * (190-170)) + 170
+            this.move_angle = (Math.random() * 10) + 170
+            this.lastMove = Date.now()
+        }
+        super.tick()
+    }
+}
+
+class HomingBaddy extends Enemy {
+    score_pts = 20;
+    max_health = 20;
+    health = 20;
+    dps = 100;
+    move_speed = 200;
+    src = "assets/homing_baddy.png";
+
+    move_angle = 180;
+
+    w = 30;
+    h = 30;
+
+    lastMove = 0;
+
+    constructor(gd) {
+        super(gd)
+        this.img.src = this.src
+    }
+
+    tick() {
+        if (Date.now() - this.lastMove > 100) {
+            const player_y = this.gd.player.y + this.gd.player.h/2
+            const player_x = this.gd.player.x + this.gd.player.w/2 - 1
+
+            const me_y = this.y + this.h/2
+            const me_x = this.x + this.w/2
+
+            if (me_x < player_x  || this.spawn_time + 1500 < Date.now()) {
+                super.tick()
+                return
+            }
+
+            const radians = Math.atan2(player_y - me_y, player_x - me_x)
+            this.move_angle = radians * 180 / Math.PI
             this.lastMove = Date.now()
         }
         super.tick()
@@ -296,6 +344,7 @@ module.exports = {
     Bullet,
     Laser,
     Baddy,
+    HomingBaddy
 }
 },{}],2:[function(require,module,exports){
 class InputHandler {
@@ -426,9 +475,9 @@ class View {
     }
 
     draw() {
-        this.gd.ctx.clearRect(0,0,this.gd.maxWidth,this.gd.maxHeigth)
+        this.gd.ctx.clearRect(0,0,this.gd.maxWidth,this.gd.maxHeight)
         const ratio = this.bg_img.width/this.bg_img.height
-        this.gd.ctx.drawImage(this.bg_img,0,0,this.gd.maxHeigth*ratio,this.gd.maxHeigth)
+        this.gd.ctx.drawImage(this.bg_img,0,0,this.gd.maxHeight*ratio,this.gd.maxHeight)
     }
 
     _draw_buttons() {
@@ -451,7 +500,71 @@ class View {
 
 module.exports = { Button, View }
 },{}],4:[function(require,module,exports){
-const { Player, Laser, Baddy } = require("./classes/entities.js")
+class Wave {
+    probabilities = []
+    constructor(duration, spawn_delay, probabilities) {
+        this.duration = duration
+        this.spawn_delay = spawn_delay
+        for (const [key, value] of Object.entries(probabilities)) {
+            this.probabilities.push([key, value])
+        }
+        this.probabilities.sort((a,b) => b[1] - a[1])
+        for (let i = 1; i < this.probabilities.length; i++) {
+            this.probabilities[i][1] += this.probabilities[i-1][1]
+        }
+    }
+}
+class WaveHandler {
+    _wave = 0
+    wave_start = Date.now()
+    waves = []
+    last_spawn = Date.now()
+    constructor(gd) {
+        this.gd = gd
+        this.setup_waves()
+    }
+    spawned = 0
+    tick() {
+        if (this.wave_start + this.waves[this._wave].duration < Date.now()) {
+            if (this._wave < this.waves.length-1) this._wave++
+            this.wave_start = Date.now()
+        }
+        if (this.last_spawn + this.waves[this._wave].spawn_delay < Date.now()) {
+            this.spawn()
+            this.last_spawn = Date.now()
+        }
+    }
+
+    setup_waves() {
+        this.waves.push(new Wave(10000, 2000, {Baddy: 1}))
+        this.waves.push(new Wave(10000, 1700, {Baddy: 0.95, HomingBaddy: 0.05}))
+        this.waves.push(new Wave(10000, 1400, {Baddy: 0.9, HomingBaddy: 0.1}))
+        this.waves.push(new Wave(10000, 1100, {Baddy: 0.8, HomingBaddy: 0.2}))
+        this.waves.push(new Wave(10000, 800, {Baddy: 0.7, HomingBaddy: 0.3}))
+        this.waves.push(new Wave(10000, 500, {Baddy: 0.6, HomingBaddy: 0.4}))
+    }
+
+    spawn() {
+        const wave = this.waves[this._wave]
+        const r = Math.random()
+        let entity = null
+        for (let i = 0; i < wave.probabilities.length; i++) {
+            if (r < wave.probabilities[i][1]) {
+                entity = wave.probabilities[i][0]
+                break
+            }
+        }
+        const new_entity = new this.gd.enemies[entity](this.gd)
+        new_entity.x = this.gd.maxWidth
+        new_entity.y = Math.random() * (this.gd.maxHeight - new_entity.h)
+        this.gd.entities[entity].push(new_entity)
+    }
+}
+
+module.exports = WaveHandler
+},{}],5:[function(require,module,exports){
+const { Player, Laser, Baddy, HomingBaddy } = require("./classes/entities.js")
+const WaveHandler = require("./classes/wave.js")
 const InputHandler = require("./classes/input.js")
 const GameView = require("./views/game/game_view.js")
 const ShopView = require("./views/shop/shop_view.js")
@@ -459,18 +572,23 @@ const ShopView = require("./views/shop/shop_view.js")
 const gd = {
     canvas: null,
     ctx: null,
-    maxWidth: null,
-    maxHeigth: null,
+    maxWidth: 720,
+    maxHeight: 480,
+    aspect_ratio: 720/480,
+    scale: 1,
 
     player: null,
     laser: null,
+    wave_handler: null,
 
     entities: {
-        "Baddy": [],
         "Bullet": [],
         "Boom": [],
     },
-    enemies: ["Baddy"],
+    enemies: {
+        "Baddy": Baddy,
+        "HomingBaddy": HomingBaddy
+    },
 
     view: "game",
     views: {
@@ -497,14 +615,20 @@ const gd = {
     setup() {
         this.input_handler.register()
         this.game_over_flag = false
-        this.score = 1000
+        this.score = 0
     
+        for (let [entity] of Object.entries(this.enemies)) {
+            this.entities[entity] = []
+        }
+
         for (let [entity] of Object.entries(this.entities)) {
             this.entities[entity] = []
         }
     
         this.player = new Player(gd, 100, 50, 10, this.maxWidth/2-50/2)
         this.laser = new Laser(gd, 150, 50, 0, 0)
+
+        this.wave_handler = new WaveHandler(gd)
         draw()
     },
     restart() {
@@ -530,17 +654,6 @@ if (cookies) {
     if (cookies[0]) gd.hiscore = cookies[0]
 }
 
-function spawnBaddy() {
-    const baddy = new Baddy(gd, 50, 50, 0, 0)
-    baddy.w = baddy.w * ((Math.random())+0.8)
-    baddy.h = baddy.w
-    baddy.x = gd.maxWidth - baddy.w
-    baddy.y = Math.floor(Math.random() * (gd.maxHeigth - baddy.h))
-    baddy.move_speed = baddy.move_speed * ((Math.random())+0.5)
-
-    gd.entities["Baddy"].push(baddy)
-}
-
 function draw() {
     gd.views[gd.view].draw(gd)
     requestAnimationFrame(draw)
@@ -561,11 +674,7 @@ function logic() {
 
     gd.input_handler.check()
 
-    if (gd.next_baddy < gd.current_tick) {
-        spawnBaddy()
-        gd.next_baddy = gd.current_tick + (Math.random() * 2000-500)+500
-    }
-
+    gd.wave_handler.tick()
     gd.player.tick()
     gd.laser.tick()
 
@@ -575,7 +684,6 @@ function logic() {
         }
     }
 
-
     gd.last_tick = gd.current_tick
 }
 
@@ -583,7 +691,7 @@ function main() {
     gd.canvas = document.getElementById("game")
     gd.ctx = gd.canvas.getContext("2d")
     gd.maxWidth = gd.ctx.canvas.width
-    gd.maxHeigth = gd.ctx.canvas.height
+    gd.maxHeight = gd.ctx.canvas.height
 
     for ([view_name, view] of Object.entries(gd.views)) {
         gd.views[view_name] = new gd.views[view_name](gd)
@@ -593,14 +701,15 @@ function main() {
     gd.setup()
     gd.logic_cycle = setInterval(logic, 1000/60)
 }
+
 window.main = main
-},{"./classes/entities.js":1,"./classes/input.js":2,"./views/game/game_view.js":7,"./views/shop/shop_view.js":10}],5:[function(require,module,exports){
+},{"./classes/entities.js":1,"./classes/input.js":2,"./classes/wave.js":4,"./views/game/game_view.js":8,"./views/shop/shop_view.js":11}],6:[function(require,module,exports){
 const ShopButton = require("./buttons/open_shop_btn.js")
 
 module.exports = {
     ShopButton,
 }
-},{"./buttons/open_shop_btn.js":6}],6:[function(require,module,exports){
+},{"./buttons/open_shop_btn.js":7}],7:[function(require,module,exports){
 const { Button } = require("../../../classes/views.js")
 
 class ShopButton extends Button {
@@ -616,7 +725,7 @@ class ShopButton extends Button {
 }
 
 module.exports = ShopButton
-},{"../../../classes/views.js":3}],7:[function(require,module,exports){
+},{"../../../classes/views.js":3}],8:[function(require,module,exports){
 const { View } = require("../../classes/views.js")
 const { ShopButton } = require("./buttons.js")
 
@@ -629,7 +738,7 @@ class GameView extends View {
 
         const enter_shop_btn = new ShopButton(gd, this.gd.maxWidth, this.gd.maxHeight)
         enter_shop_btn.x = this.gd.maxWidth-enter_shop_btn.w-10
-        enter_shop_btn.y = this.gd.maxHeigth-enter_shop_btn.h-10
+        enter_shop_btn.y = this.gd.maxHeight-enter_shop_btn.h-10
         this.buttons.push(enter_shop_btn)
     }
 
@@ -673,19 +782,19 @@ class GameView extends View {
         if (cd < 0) cd_text = "laser Ready"
         if (this.gd.laser.inuse) cd_text = "laser Active"
         if (this.gd.score < 100) cd_text = "laser requires 100 score"
-        this.gd.ctx.strokeText(cd_text, 10, this.gd.maxHeigth-10)
+        this.gd.ctx.strokeText(cd_text, 10, this.gd.maxHeight-10)
 
         if (this.gd.game_over_flag) {
             this.gd.ctx.font = "30px Arial"
             this.gd.ctx.fillStyle = "red"
             this.gd.ctx.textAlign = "center"
-            this.gd.ctx.strokeText("Game Over", this.gd.maxWidth/2, this.gd.maxHeigth/2)
-            this.gd.ctx.fillText("Game Over", this.gd.maxWidth/2, this.gd.maxHeigth/2)
+            this.gd.ctx.strokeText("Game Over", this.gd.maxWidth/2, this.gd.maxHeight/2)
+            this.gd.ctx.fillText("Game Over", this.gd.maxWidth/2, this.gd.maxHeight/2)
 
             this.gd.ctx.font = "20px Arial"
             this.gd.ctx.fillStyle = "black"
             this.gd.ctx.textAlign = "center"
-            this.gd.ctx.fillText("Press space to restart", this.gd.maxWidth/2, this.gd.maxHeigth/2 + 30)
+            this.gd.ctx.fillText("Press space to restart", this.gd.maxWidth/2, this.gd.maxHeight/2 + 30)
             return
         }
 
@@ -694,13 +803,13 @@ class GameView extends View {
 }
 
 module.exports = GameView
-},{"../../classes/views.js":3,"./buttons.js":5}],8:[function(require,module,exports){
+},{"../../classes/views.js":3,"./buttons.js":6}],9:[function(require,module,exports){
 const ExitButton = require("./buttons/close_shop_btn.js")
 
 module.exports = {
     ExitButton
 }
-},{"./buttons/close_shop_btn.js":9}],9:[function(require,module,exports){
+},{"./buttons/close_shop_btn.js":10}],10:[function(require,module,exports){
 const { Button } = require("../../../classes/views.js")
 
 class ExitButton extends Button {
@@ -716,7 +825,7 @@ class ExitButton extends Button {
 }
 
 module.exports = ExitButton
-},{"../../../classes/views.js":3}],10:[function(require,module,exports){
+},{"../../../classes/views.js":3}],11:[function(require,module,exports){
 const { View } = require("../../classes/views.js")
 const { ExitButton } = require("./buttons.js")
 
@@ -729,7 +838,7 @@ class ShopView extends View {
 
         const exit_btn = new ExitButton(gd)
         exit_btn.x = this.gd.maxWidth - exit_btn.w - 10
-        exit_btn.y = this.gd.maxHeigth - exit_btn.h - 10
+        exit_btn.y = this.gd.maxHeight - exit_btn.h - 10
         this.buttons.push(exit_btn)
     }
 
@@ -755,4 +864,4 @@ class ShopView extends View {
 }
 
 module.exports = ShopView
-},{"../../classes/views.js":3,"./buttons.js":8}]},{},[4]);
+},{"../../classes/views.js":3,"./buttons.js":9}]},{},[5]);

@@ -1,5 +1,20 @@
+html, body {
+    width: 100%;
+    overflow: hidden;
+    background-color: rgb(32, 32, 32);
+    font-family: 'Roboto', sans-serif;
+}
+
+h1 {
+    color: rgb(31, 6, 146);
+    text-align: center;
+    font-size: 50px;
+    margin-top: 0px;
+    margin-bottom: 1%;
+}
+
 canvas {
-    margin: auto;
-    display: flex;
+    margin: 0 auto;
+    display: block;
     border: 5px solid rgb(31, 6, 146);
 }
