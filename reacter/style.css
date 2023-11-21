@@ -1,0 +1,85 @@
+body, html {
+    height: 90%;
+    margin: 1%;
+    background-color: rgb(46, 46, 46);
+    color: white;
+    text-align: center;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+h1 {
+    text-align: center;
+}
+
+h2 {
+    text-align: center;
+}
+
+.GameContainer {
+    margin-top: 1%;
+    margin-bottom: 1%;
+    margin-left: 1%;
+    margin-right: 1%;
+    width: 98%;
+    height: 100%;
+    background-color: rgb(70, 70, 70);
+    overflow: hidden;
+}
+
+.GameBoard {
+    float: left;
+    width: 70%;
+    height: 100%;
+}
+
+.ScoreBoard {
+    display: flex;
+    flex-direction: column;
+    float: right;
+    width: 30%;
+    height: 100%;
+    background-color: rgb(37, 37, 37);
+}
+
+.ScoreBoard > button {
+    margin-top: 3%;
+    margin-left: 3%;
+    margin-right: 3%;
+}
+
+.ScoreBoard > span {
+    margin-top: 3%;
+    margin-left: 3%;
+    margin-right: 3%;
+    text-align: center;
+}
+
+.ScoreBoard > ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    text-align: center;
+}
+
+.ColorSquare {
+    margin-left: 10%;
+    margin-right: 10%;
+    height: 10%;
+    background-color: white;
+}
+
+.circle {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background-color: red;
+}
+
+.square {
+    position: absolute;
+    background-color: blue;
+    width: 100px;
+    height: 100px;
+}

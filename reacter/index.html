@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]>      <html class="no-js"> <!--<![endif]-->
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <h1>Teste deine Reaktionsfähigkeit!</h1>
+        <h2>clicke so schnell wie du kannst auf die Vierecke und Kreise<br></h2>
+        <span><b>Deine Zeit: </b></span><span id="Timer">0.00s</span>
+        <div class="GameContainer">
+            <div id="GameBoard" class="GameBoard"></div>
+            <div class="ScoreBoard">
+                <button id="StartButton" onclick="start_game()">Start</button>
+                <button id="StopButton" onclick="stop_game()">Stop</button>
+                <button id="ResetButton" onclick="reset_game()">Reset</button>
+                <span><b>Good Clicks: </b></span><span id="GoodClicks">0</span>
+                <span><b>Bad Clicks: </b></span><span id="BadClicks">0</span>
+                <span><b>Accuracy: </b></span><span id="Accuracy">100%</span>
+                <span><b>Average Time: </b></span><span id="AvgTime">0s</span>
+                <span><b>Best Time: </b></span><span id="BestTime">0s</span>
+                <span><b>History:</b></span>
+                <ul id="History">
+                    <li>Empty</li>
+                    <li>Empty</li>
+                    <li>Empty</li>
+                    <li>Empty</li>
+                    <li>Empty</li>
+                </ul>
+                <!--colored square div-->
+                <span><b>Good:</b></span>
+                <div id="GoodColorSquare" class="ColorSquare"></div>
+                <span><b>Bad:</b></span>
+                <div id="BadColorSquare" class="ColorSquare"></div>
+            </div>
+        </div>
+    </body>
+    <script src="script.js"></script>
+</html>
