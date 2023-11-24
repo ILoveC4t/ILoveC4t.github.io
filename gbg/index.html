@@ -10,11 +10,20 @@
         <title></title>
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="stylesheet" href="">
+        <link rel="stylesheet" href="style.css">
     </head>
     <body>
-        <a href="/nyannboom">Nyannboom</a><br>
-        <a href="/reacter">Reacter</a><br
-        <a href="/gbg">Tetris</a><br>
+        <div class="parent">
+            <div class="tetris" id="tetris">
+                <div class="block_storage" id="reserve"></div>
+                <div class="game" id="playfield"></div>
+                <div class="block_storage" id="next"></div>
+            </div>
+            <div class="stats">
+                <span><span>Score:</span><span id="score"></span></span>
+                <span><span>Level:</span><span id="level"></span></span>
+            </div>
+        </div>
     </body>
+    <script src="js/bundle.js"></script>
 </html>
