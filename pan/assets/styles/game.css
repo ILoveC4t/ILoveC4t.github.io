@@ -1,0 +1,87 @@
+.body, html {
+    width: 100vw;
+    height: 100vh;
+    background-color: rgb(128, 64, 0);
+    overflow: hidden;
+}
+
+.game {
+    width: 98vw;
+    height: 97vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.canvas-container {
+    width: 70vw;
+    height: 100%;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: rgb(206, 141, 0);
+    border-style: solid;
+    border-width: 0.5vw;
+    box-sizing: border-box;
+}
+
+.game-canvas {
+    margin: auto;
+}
+
+.sidebar {
+    width: 30vw;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-basis: auto;
+    background-color: rgb(255, 217, 135);
+    border: 0.5vw;
+    border-style: solid;
+    border-color: rgb(206, 141, 0);
+    box-sizing: border-box;
+}
+
+.back-button {
+    width: 10vw;
+    height: 3vh;
+    margin: auto;
+    background-color: white;
+    border: 0.5vw;
+    border-style: solid;
+    border-color: black;
+    border-radius: 0.2vw;
+    font-size: 1.5vw;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.color-picker {
+    width: 26vw;
+    height: 90vh;
+    margin: auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+}
+
+.color-square {
+    width: 5vw;
+    height: 5vw;
+    margin: auto;
+    border-radius: 25%;
+    color: white;
+    font-size: 2vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0.5vw;
+    border-style: solid;
+    border-color: black;
+}
