@@ -10,26 +10,14 @@
         <title></title>
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="stylesheet" href="assets/styles/index.css">
+        <link rel="stylesheet" href="style.css">
     </head>
-    <body>
-        <div class="main-menu" id="main-menu">
-            <div class="world">
-                <h1 class="world-name">Custom</h1>
-                <div class="levels" id="customWorldLevels">
-                </div>
-                <div class="footer">
-                    <input type="text" name="imageName" id="imageName" placeholder="Image Name">"    
-                    <input type="file" name="fileForm" id="fileForm">
-                    <select name="size" id="size">
-                        <option value="small">S - 12 Colors, 64x64</option>
-                        <option value="medium">M - 16 Colors, 128x128</option>
-                        <option value="large">L - 32 Colors, 256x256</option>
-                        <option value="xlarge">XL - 48 Colors, 512x512</option>
-                    </select>
-                    <button id="saveButton">Save</button>
-                </div>
-            </div>
+    <script src="js/bundle.js"></script>
+    <body onload="window.main()">
+        <!--[if lt IE 7]>
+            <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="#">upgrade your browser</a> to improve your experience.</p>
+        <![endif]-->
+        <h1>Nyannboom</h1>
+        <canvas id="game" width="720" height="480"></canvas>
     </body>
-    <script src="js/menu.js"></script>
 </html>
