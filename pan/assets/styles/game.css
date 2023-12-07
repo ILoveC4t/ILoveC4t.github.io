@@ -84,3 +84,66 @@
     border-style: solid;
     border-color: black;
 }
+
+.color-square:hover {
+    cursor: pointer;
+}
+
+.sidebar-bottom {
+    width: 100%;
+    height: 25vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.toolbox {
+    width: 100%;
+    height: 20vh;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    align-self: flex-end;
+}
+
+.tool {
+    width: 5vw;
+    height: 5vw;
+    margin: auto;
+    border-radius: 25%;
+    background-color: rgb(255, 187, 62);
+    font-size: 2vw;
+    border: 0.5vw;
+    border-style: solid;
+    border-color: black;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.tool:hover {
+    cursor: pointer;
+    background-color: rgb(255, 217, 135);
+}
+
+.progress {
+    width: 100%;
+    height: 0%;
+    display: flex;
+    align-self: flex-end;
+    justify-content: center;
+    background-color: rgb(255, 255, 255);
+    z-index: 1;
+    position: absolute;
+    bottom: 0;
+}
+
+.tool-img {
+    height: 95%;
+    z-index: 2;
+    position: absolute;
+}

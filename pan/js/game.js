@@ -968,6 +968,15 @@ class Pixel {
 
 class PixelArt {
     unsavedPixels = 0;
+
+    score = {
+        canEarn: true,
+        points: 0,
+        maxPoints: 250
+    }
+    selectedTool = "pen"
+    tools = {}
+
     sizeModifier= 25
     pixels = [];
     camera = {
@@ -1005,6 +1014,30 @@ class PixelArt {
         });
         this.resizeCanvas();
         this.colorSelector = document.getElementById("color-selector");
+        this.bucketProgress = document.getElementById("bucket-progress");
+        this.tools = {
+            pen: document.getElementById("pen"),
+            bucket: document.getElementById("bucket"),
+            eraser: document.getElementById("eraser"),
+            brush: document.getElementById("brush")
+        }
+        this.tools.pen.onclick = () => {
+            this.switchTool("pen");
+        }
+        this.tools.bucket.onclick = () => {
+            if (this.score.points < (this.score.maxPoints/2)) return;
+            this.switchTool("bucket");
+            this.score.points -= this.score.maxPoints/2;
+        }
+        this.brushProgress = document.getElementById("brush-progress");
+        this.tools.brush.onclick = () => {
+            if (this.score.points < this.score.maxPoints) return;
+            this.switchTool("brush");
+            this.brushLoop();
+        }
+        this.tools.eraser.onclick = () => {
+            this.switchTool("eraser");
+        }
         this.image = img;
         this.src = img.src
         this._extract_pixels();
@@ -1012,6 +1045,7 @@ class PixelArt {
         this._scanColorPalette();
         this._prepBuffer();
         this._registerColorPalette();
+        this.switchTool("pen");
         this.ready = true;
         this.draw();
         this.registerEvents();
@@ -1057,6 +1091,17 @@ class PixelArt {
         return this.sizeModifier * this.camera.zoom;
     }
 
+    switchTool(tool) {
+        this.selectedTool = tool;
+        for (const toolName in this.tools) {
+            if (toolName == tool) {
+                this.tools[toolName].style.backgroundColor = "orange";
+            } else {
+                this.tools[toolName].style.backgroundColor = "rgb(255, 187, 62)";
+            }
+        }
+    }
+
     draw() {
         if (!this.ready) return;
         this.ctx.fillStyle = "white";
@@ -1067,6 +1112,11 @@ class PixelArt {
     logic() {
         this.draw();
         this.mvUpdate();
+        this.mouseUpdate();
+        let progress = this.score.points / this.score.maxPoints * 100;
+        if (progress == NaN) progress = 0;
+        this.bucketProgress.style.height = progress*2 + "%";
+        this.brushProgress.style.height = progress + "%";
     }
 
     move(xOffset, yOffset) {
@@ -1168,6 +1218,20 @@ class PixelArt {
         }
     }
 
+    mouseUpdate() {
+        const x = this.mousePos.x;
+        const y = this.mousePos.y;
+        const pixelSize = this.imageSize.width / this.pixels[0].length;
+        const pixelX = Math.floor((x - this.xOffset) / pixelSize);
+        const pixelY = Math.floor((y - this.yOffset) / pixelSize);
+        if (pixelX < 0 || pixelY < 0 || pixelX >= this.pixels[0].length || pixelY >= this.pixels.length) return;
+        this._toolHandler(pixelX, pixelY);
+        if (this.unsavedPixels > 10) {
+            this._save_data();
+            this.unsavedPixels = 0;
+        }
+    }
+
     _prepBuffer() {
         this.buffer = document.createElement("canvas");
         this.buffer.width = this.image.width*this.sizeModifier;
@@ -1231,6 +1295,7 @@ class PixelArt {
         const colorSelectorWidth = this.colorSelector.clientWidth;
         const windowWidth = window.innerWidth;
         const vw = (colorSelectorWidth / colorsPerRow / windowWidth * 100)*0.8;
+        let first = true;
         for (const color of this.colorPalette) {
             const colorDiv = document.createElement("div");
             colorDiv.classList.add("color-square");
@@ -1239,8 +1304,18 @@ class PixelArt {
             colorDiv.style.height = `${vw}vw`;
             const colorID = this.colorMap[color];
             colorDiv.innerHTML = colorID;
+            if (first) {
+                const selected = document.getElementById("selected-color");
+                selected.style.backgroundColor = color;
+                selected.innerHTML = colorID;
+                first = false;
+            }
+
             colorDiv.addEventListener("click", () => {
                 this.selectedColor = color;
+                const selected = document.getElementById("selected-color");
+                selected.style.backgroundColor = color;
+                selected.innerHTML = colorID;
             });
             this.colorSelector.appendChild(colorDiv);
         }
@@ -1287,7 +1362,8 @@ class PixelArt {
         this.saveData[this.worldId] = this.saveData[this.worldId] || {};
         const imageData = {
             pixels: activePixels,
-            colorPalette: this.colorPalette
+            colorPalette: this.colorPalette,
+            points: this.score.points
         }
         this.saveData[this.worldId][this.levelId] = imageData;
         localStorage.setItem("savedata", JSON.stringify(this.saveData));
@@ -1304,24 +1380,112 @@ class PixelArt {
             this.pixels[pixel.y][pixel.x].active = true;
         }
         this.colorPalette = imageData.colorPalette;
+        this.score.points = imageData.points || 0;
+        this.unsavedPixels = 0;
     }
 
     mouseMoveEvnt(event) {
         const rect = this.canvas.getBoundingClientRect();
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
-        const pixelSize = this.imageSize.width / this.pixels[0].length;
-        const pixelX = Math.floor((x - this.xOffset) / pixelSize);
-        const pixelY = Math.floor((y - this.yOffset) / pixelSize);
-        if (pixelX < 0 || pixelY < 0 || pixelX >= this.pixels[0].length || pixelY >= this.pixels.length) return;
-        const pixel = this.pixels[pixelY][pixelX];
-        if (!this.mouseDown || pixel.active || pixel.colorID != this.colorMap[this.selectedColor]) return;
-        pixel.active = true;
-        this.unsavedPixels++;
-        this._setBufferPixel(pixelX, pixelY, pixel);
-        if (this.unsavedPixels > 10) {
-            this._save_data();
-            this.unsavedPixels = 0;
+        this.mousePos.x = x;
+        this.mousePos.y = y;
+    }
+
+    _toolHandler(x, y) {
+        if (!this.mouseDown) return;
+        switch (this.selectedTool) {
+            case "pen":
+                this.penTool(x, y);
+                break;
+            case "brush":
+                this.brushTool(x, y);
+                break;
+            case "bucket":
+                this.bucketTool(x, y);
+                break;
+            case "eraser":
+                this.eraserTool(x, y);
+                break;
+        }
+    }
+
+    penTool(x, y) {
+        const pixel = this.pixels[y][x];
+        if (!pixel.active && pixel.colorID == this.colorMap[this.selectedColor]) {
+            pixel.active = true;
+            this._setBufferPixel(x, y, pixel);
+            if (this.score.canEarn && this.score.points < this.score.maxPoints) this.score.points++;
+            if (this.unsavedPixels < 10) this.unsavedPixels++;
+            else this._save_data();
+        }
+    }
+
+    brushTool(x, y) {
+        const brushW = 4
+        const brushH = 4
+        for (let brushY = -1*(brushH/2); brushY < brushH/2; brushY++) {
+            for (let brushX = -1*(brushW/2); brushX < brushW/2; brushX++) {
+                const pixel = this.pixels[y+brushY][x+brushX];
+                if (pixel && !pixel.active && pixel.colorID == this.colorMap[this.selectedColor]) {
+                    pixel.active = true;
+                    this._setBufferPixel(x+brushX, y+brushY, pixel);
+                    if (this.score.canEarn && this.score.points < this.score.maxPoints) this.score.points++;
+                    if (this.unsavedPixels < 10) this.unsavedPixels++;
+                }
+            }
+        }
+        if (this.unsavedPixels >= 10) this._save_data();
+    }
+
+    brushLoop(interval) {
+        if (!interval) {
+            this.score.canEarn = false;
+            const newInterval = setInterval(() => {
+                this.brushLoop(newInterval);
+            }, 1000 / 5);
+            return
+        }
+        this.score.points -= this.score.maxPoints / 100;
+        if (this.score.points < 0) this.score.points = 0;
+        if (this.score.points == 0) {
+            this.switchTool("pen");
+            this.score.canEarn = true;
+            clearInterval(interval);
+        }
+    }
+
+    _bucketCrawler(x, y, colorID) {
+        const pixel = this.pixels[y][x];
+        if (pixel && pixel.colorID == colorID && !pixel.active) {
+            pixel.active = true;
+            this._setBufferPixel(x, y, pixel);
+            if (this.score.canEarn && this.score.points < this.score.maxPoints) this.score.points++;
+            if (this.unsavedPixels < 10) this.unsavedPixels++;
+            else this._save_data();
+            this._bucketCrawler(x+1, y, colorID);
+            this._bucketCrawler(x-1, y, colorID);
+            this._bucketCrawler(x, y+1, colorID);
+            this._bucketCrawler(x, y-1, colorID);
+        }
+    }
+
+    bucketTool(x, y) {
+        const colorID = this.pixels[y][x].colorID;
+        this.score.canEarn = false;
+        this._bucketCrawler(x, y, colorID);
+        this.score.canEarn = true;
+        this.switchTool("pen");
+    }
+
+    eraserTool(x, y) {
+        const pixel = this.pixels[y][x];
+        if (pixel.active) {
+            pixel.active = false;
+            this._setBufferPixel(x, y, pixel);
+            if (this.score.canEarn && this.score.points < this.score.maxPoints) this.score.points--;
+            if (this.unsavedPixels < 10) this.unsavedPixels++;
+            else this._save_data();
         }
     }
 }
